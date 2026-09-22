@@ -110,7 +110,7 @@ class JobStep(SQLModel, table=True):
     step_name: str = Field(sa_column=Column(Text, nullable=False))
 
     status: StepStatus = Field(
-        default=StepStatus.WAITING,
+        default=StepStatus.PENDING  ,
         sa_column=Column(
             SAEnum(
                 StepStatus,
@@ -118,7 +118,7 @@ class JobStep(SQLModel, table=True):
                 native_enum=True,
             ),
             nullable=False,
-            default=StepStatus.WAITING,
+            default=StepStatus.PENDING,
         ),
     )
 
