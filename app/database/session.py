@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from app.core.config import settings
 
-
 if not settings.DATABASE_URL:
     raise ValueError("DATABASE_URL not available")
 

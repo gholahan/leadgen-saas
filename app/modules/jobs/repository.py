@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlmodel import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.database.session import SessionDep, engine
 from app.modules.jobs.model import Job, JobStatus, JobStep, StepStatus
@@ -78,7 +78,7 @@ async def create_job_step(
     step = JobStep(
         job_id=job_id,
         step_name=step_name,
-        status=StepStatus.WAITING,
+        status=StepStatus.PENDING,
     )
     session.add(step)
     await session.commit()
@@ -88,7 +88,7 @@ async def create_job_step(
 
 async def get_job_steps(job_id: uuid.UUID, session: SessionDep):
     result = await session.exec(
-        select(JobStep).where(JobStep.job_id == job_id).order_by(JobStep.created_at)
+        select(JobStep).where(JobStep.job_id == job_id).order_by(JobStep.started_at, JobStep.id)
     )
     return result.all()
 
@@ -103,7 +103,7 @@ async def update_step_status(
         step.status = status
         if status == StepStatus.RUNNING and step.started_at is None:
             step.started_at = datetime.now(timezone.utc)
-        if status in {StepStatus.COMPLETED, StepStatus.FAILED, StepStatus.SKIPPED}:
+        if status in {StepStatus.COMPLETED, StepStatus.FAILED}:
             step.completed_at = datetime.now(timezone.utc)
         session.add(step)
         await session.commit()
