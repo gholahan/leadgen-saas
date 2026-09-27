@@ -128,7 +128,7 @@ async def update_step_output(
     return step
 
 
-async def _get_step(step_id: uuid.UUID, session: SessionDep) -> JobStep | None:
+async def _get_step(step_id: uuid.UUID, session: AsyncSession) -> JobStep | None:
     result = await session.exec(select(JobStep).where(JobStep.id == step_id))
     return result.first()
 

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str | None = None
 
     # Lead Enrichment
+    PROSPEO_API_KEY: str | None = None
     HUNTER_API_KEY: str | None = None
     APOLLO_API_KEY: str | None = None
     FINDYMAIL_API_KEY: str | None = None
