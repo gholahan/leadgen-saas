@@ -24,6 +24,16 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Supabase
+    SUPABASE_URL: str
+    SUPABASE_SERVICE_ROLE_KEY: str
+
+    # Neon S3-compatible object storage
+    AWS_ENDPOINT_URL_S3: str
+    AWS_ACCESS_KEY_ID: str
+    AWS_SECRET_ACCESS_KEY: str
+    AWS_REGION: str = "us-east-2"
+
     # OAuth
     GOOGLE_CLIENT_ID: str | None = None
     GOOGLE_CLIENT_SECRET: str | None = None

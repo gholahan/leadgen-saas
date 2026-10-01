@@ -6,19 +6,19 @@ celery_app = Celery(
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
 )
+import socket
 
-# Socket-level keepalive options prevent Aiven/managed Redis from dropping
-# idle connections with "Connection closed by server".
+# TCP keepalive options using integer constants (required by redis-py).
+# TCP_KEEPIDLE/INTVL/CNT are Linux-only; skip them on Windows.
+_keepalive_options = {}
+for _name, _val in [("TCP_KEEPIDLE", 60), ("TCP_KEEPINTVL", 10), ("TCP_KEEPCNT", 5)]:
+    _const = getattr(socket, _name, None)
+    if _const is not None:
+        _keepalive_options[_const] = _val
+
 _redis_transport_opts = {
     "socket_keepalive": True,
-    "socket_keepalive_options": {
-        # Start sending keepalives after 60 s of idle; then every 10 s;
-        # declare dead after 5 missed probes.
-        "TCP_KEEPIDLE": 60,
-        "TCP_KEEPINTVL": 10,
-        "TCP_KEEPCNT": 5,
-    },
-    # Raise immediately instead of blocking forever on a broken socket.
+    "socket_keepalive_options": _keepalive_options,
     "socket_connect_timeout": 10,
     "retry_on_timeout": True,
 }
@@ -29,6 +29,7 @@ celery_app.conf.update(
     result_serializer="json",
     imports=(
         "app.modules.jobs.task",
+        "app.modules.export.task",
     ),
     # Apply transport options to both broker and result backend.
     broker_transport_options=_redis_transport_opts,
