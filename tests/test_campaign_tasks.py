@@ -54,6 +54,24 @@ class CampaignTaskTests(unittest.IsolatedAsyncioTestCase):
         sleep.assert_awaited_once_with(0.0)
         self.assertTrue(any("Brevo rate-limited email" in message for message in logs.output))
         self.assertTrue(any("Brevo accepted email (HTTP 201)" in message for message in logs.output))
+        self.assertTrue(
+            any(
+                "Sending Brevo email payload" in message
+                and "'subject': 'Hello'" in message
+                and "'htmlContent': '<p>Hi</p>'" in message
+                for message in logs.output
+            )
+        )
+        self.assertEqual(
+            client.post.await_args_list[-1].kwargs["json"],
+            {
+                "sender": {"email": "sender@example.com"},
+                "to": [{"email": "recipient@example.com"}],
+                "subject": "Hello",
+                "htmlContent": "<p>Hi</p>",
+                "textContent": "Hi",
+            },
+        )
 
     async def test_brevo_error_includes_provider_response(self):
         request = httpx.Request("POST", "https://api.brevo.com/v3/smtp/email")

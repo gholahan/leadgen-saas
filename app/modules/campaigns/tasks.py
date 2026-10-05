@@ -62,20 +62,22 @@ async def _send_via_brevo(
     # Strip HTML tags for the plain-text fallback so clients that don't render HTML
     # still show readable content rather than raw markup.
     text_content = _re.sub(r"<[^>]+>", "", html).strip()
+    payload = {
+        "sender": {"email": from_email},
+        "to": [{"email": to}],
+        "subject": subject,
+        "htmlContent": html,
+        "textContent": text_content,
+    }
     for attempt in range(4):
+        logger.info("Sending Brevo email payload: %s", payload)
         resp = await client.post(
             "https://api.brevo.com/v3/smtp/email",
             headers={
                 "api-key": settings.BREVO_API_KEY,
                 "Content-Type": "application/json",
             },
-            json={
-                "sender": {"email": from_email},
-                "to": [{"email": to}],
-                "subject": subject,
-                "htmlContent": html,
-                "textContent": text_content,
-            },
+            json=payload,
             timeout=15,
         )
         if resp.status_code == 429 and attempt < 3:
