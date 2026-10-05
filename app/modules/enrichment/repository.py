@@ -18,6 +18,7 @@ async def create_lead_enrichment(
     domain: str | None,
     status: EnrichmentStatus,
     session: AsyncSession,
+    first_name: str | None = None,
 ) -> LeadEnrichment:
     record = LeadEnrichment(
         lead_id=lead_id,
@@ -26,6 +27,7 @@ async def create_lead_enrichment(
         email_type=email_type,
         email_score=email_score,
         domain=domain,
+        first_name=first_name,
         status=status,
     )
     session.add(record)

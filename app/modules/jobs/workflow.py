@@ -1,7 +1,6 @@
 import logging
 from uuid import UUID
 
-from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.database.session import engine
@@ -21,7 +20,6 @@ from app.modules.jobs.repository import (
     update_step_output,
     update_step_status,
 )
-from app.modules.leads.model import Lead
 from app.modules.normalization.service import normalize_leads
 from app.modules.scraping.service import ScrapingService
 
@@ -195,9 +193,10 @@ async def _run_job_workflow(job_id: str):
 
     try:
         enrichment_service = EnrichmentService()
-        enriched_leads = await enrichment_service.enrich_leads(
-            unique_leads, job.id, session
-        )
+        async with AsyncSession(engine, expire_on_commit=False) as session:
+            enriched_leads = await enrichment_service.enrich_leads(
+                unique_leads, job.id, session
+            )
         emails_found = sum(1 for l in enriched_leads if l.email)
 
         async with AsyncSession(engine, expire_on_commit=False) as session:
@@ -214,45 +213,6 @@ async def _run_job_workflow(job_id: str):
         async with AsyncSession(engine, expire_on_commit=False) as session:
             await update_step_output(enrich_step.id, session, {}, error_message=str(exc))
             await update_step_status(enrich_step.id, StepStatus.FAILED, session)
-        await _mark_job_failed(job_id, str(exc))
-        return
-
-    if await _check_is_cancelled(job_id):
-        await _mark_job_cancelled(job_id)
-        return
-
-    # ── 6. Persist enriched emails ──────────────────────────────────
-    async with AsyncSession(engine, expire_on_commit=False) as session:
-        persist_enriched_step = await create_job_step(
-            job.id, "persist_enriched_emails", session
-        )
-        await update_step_status(persist_enriched_step.id, StepStatus.RUNNING, session)
-        await update_job_progress(job.id, 97, session)
-
-    try:
-        async with AsyncSession(engine, expire_on_commit=False) as session:
-            result = await session.exec(select(Lead).where(Lead.job_id == job.id))
-            leads_to_persist = result.all()
-            session.add_all(leads_to_persist)
-            await session.commit()
-
-            await update_step_output(
-                persist_enriched_step.id,
-                session,
-                {"persisted_lead_count": len(leads_to_persist)},
-            )
-            await update_step_status(persist_enriched_step.id, StepStatus.COMPLETED, session)
-            await update_job_progress(job.id, 100, session)
-
-    except Exception as exc:
-        logger.exception(
-            "Step 'persist_enriched_emails' failed for job %s: %s", job_id, exc
-        )
-        async with AsyncSession(engine, expire_on_commit=False) as session:
-            await update_step_output(
-                persist_enriched_step.id, session, {}, error_message=str(exc)
-            )
-            await update_step_status(persist_enriched_step.id, StepStatus.FAILED, session)
         await _mark_job_failed(job_id, str(exc))
         return
 

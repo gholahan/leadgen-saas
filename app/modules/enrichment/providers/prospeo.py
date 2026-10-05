@@ -70,23 +70,26 @@ class ProspeoProvider(EnrichmentProvider):
         if not results:
             return EnrichmentResult(status="NOT_FOUND", domain=domain)
 
-        for item in results:
-            person = item.get("person") or {}
-            person_id = person.get("person_id")
-            if not person_id:
-                continue
+        person_ids = [
+            item["person"]["person_id"]
+            for item in results
+            if item.get("person", {}).get("person_id")
+        ]
+        if not person_ids:
+            return EnrichmentResult(status="NOT_FOUND", domain=domain)
 
-            enrich_response = await self._post_with_rate_limit_retry(
+        async def _enrich_person(person_id: str) -> dict | None:
+            resp = await self._post_with_rate_limit_retry(
                 client,
                 f"{self.base_url}/enrich-person",
                 headers,
-                {
-                    "data": {"person_id": person_id},
-                    "only_verified_email": True,
-                },
+                {"data": {"person_id": person_id}, "only_verified_email": True},
             )
-            enrich_result = enrich_response.json()
+            return resp.json()
 
+        enrich_results = await asyncio.gather(*(_enrich_person(pid) for pid in person_ids))
+
+        for enrich_result in enrich_results:
             if enrich_result.get("error"):
                 error_code = enrich_result.get("error_code")
                 if error_code not in {"NO_MATCH", "NO_RESULTS"}:
@@ -107,6 +110,7 @@ class ProspeoProvider(EnrichmentProvider):
                     email=email,
                     email_type=email_type,
                     domain=domain,
+                    first_name=person.get("first_name") or None,
                     status="FOUND",
                 )
 

@@ -30,6 +30,7 @@ celery_app.conf.update(
     imports=(
         "app.modules.jobs.task",
         "app.modules.export.task",
+        "app.modules.campaigns.tasks",
     ),
     # Apply transport options to both broker and result backend.
     broker_transport_options=_redis_transport_opts,

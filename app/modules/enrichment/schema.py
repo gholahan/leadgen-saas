@@ -6,4 +6,5 @@ class EnrichmentResult(BaseModel):
     email_type: str | None = None
     email_score: int | None = None
     domain: str | None = None
+    first_name: str | None = None
     status: str = "NOT_FOUND"

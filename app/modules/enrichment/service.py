@@ -38,32 +38,46 @@ class EnrichmentService:
         async with AsyncClient(timeout=Timeout(20.0)) as client:
             sem = asyncio.Semaphore(_ENRICH_CONCURRENCY)
 
-            async def _enrich_one(lead: Lead) -> Lead:
+            async def _enrich_one(
+                lead: Lead,
+            ) -> tuple[Lead, EnrichmentResult | None]:
                 if lead.email:
                     logger.debug("Lead %s already has email, skipping", lead.id)
-                    return lead
+                    return lead, None
 
                 domain = extract_clean_domain(lead.website)
                 if not domain:
                     logger.debug("Lead %s has no domain, skipping", lead.id)
-                    await create_lead_enrichment(
-                        lead_id=str(lead.id),
-                        provider="none",
-                        email=None,
-                        email_type=None,
-                        email_score=None,
-                        domain=None,
-                        status=EnrichmentStatus.NOT_FOUND,
-                        session=session,
-                    )
-                    return lead
+                    return lead, None
 
                 logger.debug("Enriching lead %s via Prospeo", lead.id)
                 async with sem:
                     result: EnrichmentResult = await self.prospeo.enrich(
                         domain, company_name=lead.company_name, client=client
                     )
+                return lead, result
 
+            results = await asyncio.gather(*(_enrich_one(lead) for lead in leads))
+
+        enriched = []
+        for lead, result in results:
+            if lead.email:
+                enriched.append(lead)
+                continue
+
+            domain = extract_clean_domain(lead.website)
+            if not domain:
+                await create_lead_enrichment(
+                    lead_id=str(lead.id),
+                    provider="none",
+                    email=None,
+                    email_type=None,
+                    email_score=None,
+                    domain=None,
+                    status=EnrichmentStatus.NOT_FOUND,
+                    session=session,
+                )
+            elif result is not None:
                 await create_lead_enrichment(
                     lead_id=str(lead.id),
                     provider="prospeo",
@@ -71,6 +85,7 @@ class EnrichmentService:
                     email_type=result.email_type,
                     email_score=result.email_score,
                     domain=result.domain,
+                    first_name=result.first_name,
                     status=EnrichmentStatus(result.status),
                     session=session,
                 )
@@ -80,8 +95,6 @@ class EnrichmentService:
                     lead.email = result.email
                     logger.info("Enriched email for lead %s", lead.id)
 
-                return lead
+            enriched.append(lead)
 
-            enriched = await asyncio.gather(*(_enrich_one(lead) for lead in leads))
-
-        return list(enriched)
+        return enriched

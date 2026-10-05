@@ -26,7 +26,6 @@ def decode_access_token(token: str) -> dict:
     return jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
 
 def create_refresh_token(user_id: str):
-
     payload = {
         "sub": user_id,
         "type": "refresh",

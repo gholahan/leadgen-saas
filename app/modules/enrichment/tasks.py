@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.celery import celery_app
-from app.database.session import engine
+from app.database.session import make_celery_engine
 from app.modules.enrichment.service import EnrichmentService
 from app.modules.jobs.model import StepStatus
 from app.modules.jobs.repository import (
@@ -25,6 +25,7 @@ except ImportError:
 
 
 async def _run_enrichment_task(job_id: str) -> None:
+    engine = make_celery_engine()
     if await _check_is_cancelled(job_id):
         return
 

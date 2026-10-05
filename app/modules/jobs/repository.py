@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.database.session import SessionDep, engine
+from app.database.session import SessionDep, make_celery_engine
 from app.modules.jobs.model import Job, JobStatus, JobStep, StepStatus
 from app.modules.jobs.schema import JobCreate
 
@@ -136,7 +136,7 @@ async def _get_step(step_id: uuid.UUID, session: AsyncSession) -> JobStep | None
 async def _check_is_cancelled(job_id: str | uuid.UUID) -> bool:
     """Return True if the job is missing or has been marked for cancellation."""
     try:
-        async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with AsyncSession(make_celery_engine(), expire_on_commit=False) as session:
             result = await session.exec(select(Job).where(Job.id == job_id))
             job = result.first()
 
@@ -158,7 +158,7 @@ async def _set_job_state(
 ) -> None:
     """Atomically update the job state in the database."""
     try:
-        async with AsyncSession(engine, expire_on_commit=False) as session:
+        async with AsyncSession(make_celery_engine(), expire_on_commit=False) as session:
             result = await session.exec(select(Job).where(Job.id == job_id))
             job = result.first()
             if not job:

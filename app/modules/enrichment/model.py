@@ -23,6 +23,7 @@ class LeadEnrichment(SQLModel, table=True):
     email_type: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     email_score: int | None = Field(default=None, sa_column=Column(Integer, nullable=True))
     domain: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    first_name: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     status: EnrichmentStatus = Field(
         default=EnrichmentStatus.NOT_FOUND,
         sa_column=Column(SAEnum(EnrichmentStatus, name="enrichment_status"), nullable=False),

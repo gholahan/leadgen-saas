@@ -52,6 +52,7 @@ class Settings(BaseSettings):
 
     # Email Providers
     RESEND_API_KEY: str | None = None
+    BREVO_API_KEY: str | None = None
 
     SMTP_HOST: str | None = None
     SMTP_PORT: int = 587
