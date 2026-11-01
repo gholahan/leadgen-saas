@@ -4,6 +4,7 @@ from app.modules.jobs.router import router as jobs_router
 from app.modules.leads.router import router as leads_router
 from app.modules.export.router import router as export_router
 from app.modules.campaigns.router import router as campaigns_router
+from app.modules.campaigns.webhook_router import router as webhook_router
 
 api_router = APIRouter()
 
@@ -12,3 +13,4 @@ api_router.include_router(jobs_router)
 api_router.include_router(export_router)
 api_router.include_router(leads_router)
 api_router.include_router(campaigns_router)
+api_router.include_router(webhook_router)
